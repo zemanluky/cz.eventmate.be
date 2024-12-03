@@ -80,10 +80,10 @@ userManagementController.put(
  * Gets user's own user profile.
  */
 userManagementController.get(
-    '/profile', loginGuard(),
+    '/profile', microserviceGuard(false), loginGuard(),
     async (req: AppRequest, res: Response) => {
-        const user = await getUser(req.user!.id);
-        successResponse(res, R.omit(user, ['friends', 'profile_picture_path']));
+        const user = req.isMicroserviceRequest ? await getUser(req.query.userId) : await getUser(req.user!.id);
+        successResponse(res, R.omit(user, ['profile_picture_path']));
     }
 );
 

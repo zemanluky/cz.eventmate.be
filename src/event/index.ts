@@ -20,7 +20,7 @@ const app = express();
 app.use(express.json());
 
 // add controllers here...
-app.use('/event', eventController);
+app.use('/', eventController);
 
 // global handler for 404
 app.use((req, res, next) => {
