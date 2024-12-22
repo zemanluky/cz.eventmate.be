@@ -36,5 +36,7 @@ const userSchema = new Schema<IUser, TUserModel>({
     ratings: { type: [userRatingSchema], required: false, default: [] },
 });
 
+
+
 export const User = model<IUser, TUserModel>('User', userSchema);
 export type TUser = InferRawDocType<typeof userSchema>;

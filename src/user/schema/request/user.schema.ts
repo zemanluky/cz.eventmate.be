@@ -35,7 +35,15 @@ export const userIdParamSchema = z.object({
     id: z.string().trim().pipe(zodObjectId).transform(val => new Types.ObjectId(val))
 });
 
-export type TUserIdParam = z.infer<typeof userIdParamSchema>;
+export const friendRequestQuerySchema = z.object({
+    userId: z.string().min(0,"User ID is required."),
+});
+export type TFriendRequestQuery = z.infer<typeof friendRequestQuerySchema>;
+
+
+
+
+
 export type TRegistrationData = z.infer<typeof registerUserBodySchema>;
 export type TUpdateUserData = z.infer<typeof updateUserSchema>;
 export type TAvailabilityQuery = z.infer<typeof verifyAvailabilityQuerySchema>;

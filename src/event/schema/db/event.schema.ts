@@ -1,30 +1,28 @@
-import {type HydratedDocument, type InferRawDocType, model, type Model, Schema, Types} from "mongoose";
-import * as mongoose from "mongoose";
+import { model, Schema, Types, Document } from "mongoose";
 
 export interface IEvent {
-    _id: mongoose.Types.ObjectId;
+    _id: Types.ObjectId;
     name: string;
-    description?: string|null;
+    description?: string | null;
     date: Date;
     location: string;
     private: boolean;
     category: string;
     ownerId: Types.ObjectId;
+    attendees: Types.ObjectId[];
 }
 
-type TEventModel = Model<IEvent>;
 
-export type THydratedEventDocument = HydratedDocument<IEvent>;
-
-const eventSchema = new Schema<IEvent, TEventModel>({
+const eventSchema = new Schema<IEvent>({
     name: { type: String, required: true },
     description: { type: String, required: false, default: null },
     date: { type: Date, required: true },
-    private: { type: Boolean, required: true }, 
+    private: { type: Boolean, required: true },
     location: { type: String, required: true },
     category: { type: String, required: true },
     ownerId: { type: Schema.Types.ObjectId, required: true },
+    attendees: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
 });
 
-export const Event = model<IEvent, TEventModel>('Event', eventSchema);
-export type TEvent = InferRawDocType<typeof eventSchema>;
+
+export const Event = model<IEvent>('Event', eventSchema);

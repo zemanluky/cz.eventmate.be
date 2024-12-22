@@ -25,6 +25,17 @@ import {emptyResponse, successResponse} from "../helper/response.helper.ts";
 import {StatusCodes} from "http-status-codes";
 import {microserviceGuard} from "../helper/microservice.url.ts";
 import * as R from 'remeda';
+import {getUser} from "../service/user.service.ts";
+import { getUserRatings } from "../service/user-management.service.ts";
+import { userIdParamSchema } from "../schema/request/user.schema.ts";
+import { friendRequestQuerySchema } from "../schema/request/user.schema.ts";
+import { getFriendRequests } from "../service/user-management.service.ts";
+import {BadRequestError} from "../error/response/bad-request.error.ts"
+import { NotFoundError } from "../error/response/not-found.error.ts"
+import { userSchemaForRating } from "../schema/request/user.schema.ts";
+import type { IUserRating } from "../schema/db/rating.schema.ts";
+import { addUserRating } from "../service/user-management.service.ts";
+
 import {getAllUsers, getUser} from "../service/user.service.ts";
 import {Types} from "mongoose";
 import {userController} from "./user.controller.ts";
@@ -108,3 +119,17 @@ userManagementController.get(
         successResponse(res, users);
     }
 );
+
+userManagementController.post(
+    '/user/:id/rating',
+    paramValidator(userIdParamSchema),
+    bodyValidator(userSchemaForRating),
+    async (req: AppRequest<{ id: string }, never, IUserRating>, res: Response) => {
+        const userId = req.parsedParams!.id;
+        const ratingData = req.body;
+
+        const rating = await addUserRating(userId, ratingData);
+        successResponse(res, { rating }, StatusCodes.CREATED);
+    }
+);
+

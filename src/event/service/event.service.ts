@@ -1,5 +1,4 @@
-import mongoose, {Types} from "mongoose";
-import { NotFoundError } from "../error/response/not-found.error";
+import { NotFoundError } from "../error/response/not-found.error.ts";
 import { getFetchHeaders, microserviceUrl } from "../helper/microservice.url";
 import {Event, type IEvent, type THydratedEventDocument} from "../schema/db/event.schema";
 import type {TEventBody, TFilterEventsValidator} from "../schema/request/event.schema";
@@ -7,6 +6,9 @@ import type {TResponse} from "../helper/response.helper.ts";
 import {ServerError} from "../error/response/server.error.ts";
 import {BadRequestError} from "../error/response/bad-request.error.ts";
 import {PermissionError} from "../error/response/permission.error.ts";
+import { Types } from "mongoose";
+import { startOfMonth, endOfMonth } from 'date-fns';
+
 
 /**
  * Gets a filtered and paginated list of events.
@@ -181,4 +183,87 @@ export async function updateEvent(id: string, updates: TEventBody, userId: strin
     );
 
     return addAuthorDetail(updatedEvent!);
+}
+
+export const markAttendance = async (eventId: string, userId: string) => {
+    // Find the event by ID
+    const event = await Event.findById(eventId);
+    if (!event) {
+        throw new NotFoundError(`Could not find event with ID: ${eventId}.`, "event");
+    }
+
+    // Check if user is allowed to mark attendance (only non-private events or members can mark)
+    if (event.private && event.ownerId.toString() !== userId) {
+        throw new PermissionError('You are not authorized to mark attendance for this event', "event");
+    }
+
+    // Convert userId to ObjectId for proper comparison and storage
+    const userObjectId = new Types.ObjectId(userId);
+
+    // Check if the user is already in the attendees list
+    const attendanceIndex = event.attendees.findIndex(attendee => attendee.toString() === userObjectId.toString());
+
+    if (attendanceIndex === -1) {
+        // If the user is not attending, add them
+        event.attendees.push(userObjectId);
+    } else {
+        // If the user is already attending, remove them (toggle attendance)
+        event.attendees.splice(attendanceIndex, 1);
+    }
+
+    // Save the updated event
+    await event.save();
+
+    return { message: "Attendance updated successfully" };
+};
+
+export const removeAttendance = async (eventId: string, userId: string) => {
+    // Find the event by ID
+    const event = await Event.findById(eventId);
+    if (!event) {
+        throw new NotFoundError(`Could not find event with ID: ${eventId}.`, "event");
+    }
+
+    // Check if the user is attending
+    const userObjectId = new Types.ObjectId(userId);
+    const attendanceIndex = event.attendees.indexOf(userObjectId);
+
+    if (attendanceIndex === -1) {
+        throw new BadRequestError("User is not attending this event.", "event:attendance");
+    }
+
+    // Remove the user from the attendees list
+    event.attendees.splice(attendanceIndex, 1);
+    
+    // Save the updated event
+    await event.save();
+
+    return { message: "Attendance removed successfully" };
+};
+
+export async function getMonthOverview(userId: string, queryFilter: TFilterEventsValidator) {
+    const { rating, filter } = queryFilter;
+
+    const startOfMonthDate = startOfMonth(new Date());
+    const endOfMonthDate = endOfMonth(new Date());
+
+    const baseQuery = Event.find({
+        date: { $gte: startOfMonthDate, $lte: endOfMonthDate }
+    });
+
+    if (rating) {
+        baseQuery.where({
+            rating: { $gte: rating }
+        });
+    }
+
+    if (filter === 'friends-only') {
+        baseQuery.where({ private: true, ownerId: { $in: [userId] } });
+    } else if (filter === 'public-only') {
+        baseQuery.where({ private: false });
+    }
+
+    const events = await baseQuery.exec();
+
+    return events;
 }

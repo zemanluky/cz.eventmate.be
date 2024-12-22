@@ -3,7 +3,7 @@ import mongoose, {Types} from "mongoose";
 import {startOfToday} from "date-fns";
 import {zodObjectId} from "../../utils/validation.utils.ts";
 
-export const idSchema = z.string().refine((id) => mongoose.Types.ObjectId.isValid(id), {
+export const idSchema = z.string().refine((id: any) => mongoose.Types.ObjectId.isValid(id), {
   message: "Invalid ObjectId",
 });
 
